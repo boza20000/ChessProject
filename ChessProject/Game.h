@@ -4,6 +4,18 @@
 #include <io.h>
 #include <fcntl.h>
 #include "Board.h"
+#include "Piece.h"
+
+struct LastMove {
+	int startX, startY;
+	int endX, endY;
+	Piece * movedPiece;
+	LastMove(int startX, int startY, int endX, int endY, Piece* movedPiece)
+		: startX(startX), startY(startY), endX(endX), endY(endY), movedPiece(movedPiece) {
+	}
+	~LastMove() = default;
+};
+
 enum class GameType
 {
 	NORMAL,
@@ -14,23 +26,31 @@ enum class GameType
 
 
 class Game
-{
-private:
-	GameType type;
+{	
 public:
+	static GameType type;
+	static LastMove lastMove;
+	static Color currentPlayer;
 	Game() = default;
 	~Game() = default;
+
 	void start();
-	void printChessBoard();
 	void end();
-	void save();
+	void save(Board board);
 	void load();
-	static void setColor(int textColor, int bgColor);
-	static void cleanConsole();
+	void printChessBoard();
+	void gameLoop(Board& board);
 	void setupConsole();
 	void changeConsoleFont();
-	void gameLoop(Board& board);
-	void saveGameInFile();
-	void loadGameFromFile();
-};
+	static void saveGameInFile(const Board board);
+	static void loadGameFromFile();
+	void setGameState(GameType gameType);
+	void GameState(int choice);
+	GameType getType()const;
+	void setTime();
+	
+	
 
+	static void setColor(int textColor, int bgColor);
+	static void cleanConsole();
+};

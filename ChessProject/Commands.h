@@ -2,6 +2,7 @@
 #include <string>  
 #include "Board.h" 
 #include "Piece.h"
+
 class Commands
 {
 private:
@@ -16,15 +17,20 @@ public:
 	void setCommand(const std::wstring& command);
 	std::wstring getCommand() const;
 
-	bool isValidCommand() const;
+	bool isValidCommand(Board& board) const;
+	static void save(Board& board);
+	static void load(Board& board);
 	void executeCommand(Board& board);
 	bool isValidMove(const Board& board) const;
 	void printHelp();
 	void printAvailableCommands();
 	void printCurrentCommand();
 	void clearCommand();
-	bool placeClear(const Board& board, int x, int y)const;
-	bool moveCorrect(const Board& board, int startX, int startY, int endX, int endY)const;
-	bool isCheck(const Board& board)const;
-	bool isFiguirSelected(const Board& board, int x, int y)const;
+
+	bool isRightColorFigure(const Board& board)const;
+	bool moveCorrect(const Board& board, int startX, int startY, int endX, int endY) const;
+	bool isCheck(const Board& board , Color color) const;
+	bool isFiguirSelected(const Board& board, int x, int y) const;
+	bool revailsCheck(const Board& board);
+	bool isMate(const Board& board) const;
 };

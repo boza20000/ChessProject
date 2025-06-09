@@ -1,7 +1,22 @@
 #include "Queen.h"
+#include "Board.h"
+#include "Rook.h"
+#include "Bishop.h"
 
 bool Queen::checkValidMove(const Board& board, int startX, int startY, int endX, int endY) const
 {
-
-    return false;
+	//empty place or taking figure
+	if (board.getPiece(endX, endY) != nullptr && !isOppositionFigure(board, endX, endY)) {
+		return false;
+	}
+	//use implemented methods of rook and bishop to check if the move is valid
+	Rook rook({ startX ,startY });
+	if (rook.checkValidMove(board, startX, startY, endX, endY)) {
+		return true;
+	}
+	Bishop bishop({ startX,startY });
+	if (bishop.checkValidMove(board, startX, startY, endX, endY)) {
+		return true;
+	}
+	return false;
 }

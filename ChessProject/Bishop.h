@@ -5,7 +5,9 @@
 class Bishop : public Piece
 {
 public:
-	Bishop(Position position) :Piece(position) {}	
+	~Bishop() = default;
+	Bishop(Position position,Color color) :Piece(position,color) {}	
+	Bishop(Position position) :Piece(position) {}
 	bool checkValidMove(const Board& board, int startX, int startY, int endX, int endY) const override;
 };
 

@@ -12,23 +12,25 @@ struct Position
 	int x;
 	int y;
 };
+
 class Board;
+
 class Piece
 {
 protected:
 	Position position;
-	//Color color;
-
+	Color color;
+	bool isMoved = false;
 public:
+	void isMovedToTrue() { isMoved = true; }
+	bool getIsMoved() const { return isMoved; }
 	Piece(Position position);
+	Piece(Position position, Color color);
+	virtual ~Piece() = default;
 	void setPosition(Position newPosition);
 	Position getPosition() const;
-	virtual bool checkValidMove(const Board& board, int startX, int startY, int endX, int endY)const = 0;
-	virtual ~Piece() = default;
-
-	//Color getColor() const;
-    //void setColor(Color newColor);
-    //virtual void move(Position newPosition) = 0;
-	//virtual void repaintPiece() const = 0;
+	Color getColor() const;
+	void setColor(Color newColor);
+	bool isOppositionFigure(const Board& board, int endX, int endY) const;
+	virtual bool checkValidMove(const Board& board, int startX, int startY, int endX, int endY) const = 0;
 };
-
