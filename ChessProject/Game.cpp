@@ -140,7 +140,7 @@ void Game::end(Color curPlayer)
 {
 	cleanConsole();
 	std::wcout << "\nGame Over!\n";
-	std::wcout << (curPlayer == Color::WHITE ? L"Black" : L"White") << L" wins!\n";
+	std::wcout << (curPlayer == Color::WHITE ? L"White" : L"Black") << L" wins!\n";
 	Sleep(2000);
 	exit(0);
 }

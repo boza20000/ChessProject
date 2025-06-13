@@ -216,7 +216,7 @@ bool Commands::revailsCheck(const Board& board)
 	return false;
 }
 
-Position findKing(const Board& board) {
+Position Commands::findKing(const Board& board, Color defender)const {
 	Position kingPos = { -1, -1 };
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
@@ -225,15 +225,88 @@ Position findKing(const Board& board) {
 				kingPos = { x, y };
 				break;
 			}
-		}	
+		}
 	}
 	return kingPos;
 }
 
+bool Commands::isPieceProtected(const Board& board, Piece* targetPiece)const {
+	if (!targetPiece) return false;
+
+	int targetX = targetPiece->getPosition().x;
+	int targetY = targetPiece->getPosition().y;
+	Color targetColor = targetPiece->getColor();
+
+	for (int x = 0; x < 8; ++x) {
+		for (int y = 0; y < 8; ++y) {
+			Piece* potentialProtector = board.getPiece(x, y);
+			if (potentialProtector && potentialProtector != targetPiece &&
+				potentialProtector->getColor() == targetColor) {
+
+				if (potentialProtector->checkValidMove(board, x, y, targetX, targetY)) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
+
+bool isKing(Piece* piece) {
+	if (piece->getSymbol() == L"♚ " || piece->getSymbol() == L"♔ ") {
+		return true;
+	}
+	return false;
+}
+bool Commands::isPathClear(const Board&board,Color defender,Position * interceptPath,int pathLen)const {
+	for (int y = 0; y < 8; ++y) {
+		for (int x = 0; x < 8; ++x) {
+			Piece* defenderPiece = board.getPiece(x, y);
+			if (!defenderPiece || defenderPiece->getColor() != defender)
+				continue;
+
+			for (int i = 0; i < pathLen; ++i) {
+				Position target = interceptPath[i];
+				if (defenderPiece->checkValidMove(board, x, y, target.x, target.y)) {
+					if (Commands::isPieceProtected(board, board.getPiece(x, y)) && isKing(defenderPiece)) {
+						continue;
+					}
+					return false;
+				}
+			}
+		}
+	}
+	return true;
+}
+
+bool Commands::isEscapable(const Board& board, const Position& kingPos,Color defender) const
+{
+	for (int dx = -1; dx <= 1; ++dx) {
+		for (int dy = -1; dy <= 1; ++dy) {
+			if (dx == 0 && dy == 0) continue;
+
+			int newX = kingPos.x + dx;
+			int newY = kingPos.y + dy;
+
+			if (newX >= 0 && newX < 8 && newY >= 0 && newY < 8) {
+				Piece* king = board.getPiece(kingPos.x, kingPos.y);
+				if (king && king->checkValidMove(board, kingPos.x, kingPos.y, newX, newY)) {
+					Board tempBoard = board;
+					tempBoard.makeMove(kingPos.x, kingPos.y, newX, newY, true); // simulate move
+					if (!isCheck(tempBoard, defender)) {
+						return true; // king can escape
+					}
+				}
+			}
+		}
+	}
+	return false;
+}
+
 bool Commands::isMate(const Board& board) const {
-	Color defender = Game::currentPlayer;
-	Color attacker = (defender == Color::WHITE) ? Color::BLACK : Color::WHITE;
-	Position kingPos = findKing(board);
+	Color attacker = Game::currentPlayer;
+	Color defender = (attacker == Color::WHITE) ? Color::BLACK : Color::WHITE;
+	Position kingPos = findKing(board, defender);
 	if (!isCheck(board, defender)) {
 		return false;
 	}
@@ -242,7 +315,7 @@ bool Commands::isMate(const Board& board) const {
 	Position attackerPos{ lastMove.endX, lastMove.endY };
 
 	if (!attackerPiece || attackerPiece->getColor() != attacker) {
-		return true; 
+		return true;
 	}
 
 	Position interceptPath[8];
@@ -262,21 +335,15 @@ bool Commands::isMate(const Board& board) const {
 		}
 	}
 
-	for (int y = 0; y < 8; ++y) {
-		for (int x = 0; x < 8; ++x) {
-			Piece* defenderPiece = board.getPiece(x, y);
-			if (!defenderPiece || defenderPiece->getColor() != defender)
-				continue;
-
-			for (int i = 0; i < pathLen; ++i) {
-				Position target = interceptPath[i];
-				if (defenderPiece->checkValidMove(board, x, y, target.x, target.y)) {
-					return false; 
-				}
-			}
-		}
+	if (pathLen > 0 && !isPathClear(board, defender, interceptPath, pathLen)) {
+		return false; 
 	}
-	return true; 
+
+	if (isEscapable(board, kingPos, defender)) {
+		return false; 
+	}
+	
+	return true;
 }
 
 
