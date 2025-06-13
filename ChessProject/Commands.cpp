@@ -18,7 +18,7 @@ void Commands::processCommands(Board& board)
 	wchar_t inputBuffer[MAX_COMMAND_LENGTH];
 	std::wcin.getline(inputBuffer, MAX_COMMAND_LENGTH);
 	setCommand(std::wstring(inputBuffer));
-	if (isValidCommand(board) && isValidMove(board) && !isCheck(board,Game::currentPlayer)
+	if (isValidCommand(board) && isValidMove(board) && !isCheck(board, Game::currentPlayer)
 		&& isRightColorFigure(board) && !revailsCheck(board)) {
 		executeCommand(board);
 	}
@@ -113,7 +113,7 @@ bool Commands::isValidMove(const Board& board) const
 	return false;
 }
 
-void Commands::executeCommand(Board& board)
+void Commands::executeCommand(Board& board, bool isSimulation)
 {
 	wchar_t firstChar = command[0];
 	wchar_t secondChar = command[1];
@@ -124,7 +124,7 @@ void Commands::executeCommand(Board& board)
 	int startRow = 8 - (secondChar - L'0');
 	int endCol = towlower(fourthChar) - L'a';
 	int endRow = 8 - (fifthChar - L'0');
-	board.movePiece(startCol, startRow, endCol, endRow);
+	board.movePiece(startCol, startRow, endCol, endRow, isSimulation);
 }
 
 void Commands::printHelp()
@@ -152,7 +152,7 @@ bool Commands::isRightColorFigure(const Board& board) const
 	int startX = towlower(command[0]) - L'a';
 	int startY = 8 - (command[1] - L'0');
 	Piece* figure = board.getPiece(startX, startY);
-	if (figure->getColor() != Game::currentPlayer) {	
+	if (figure->getColor() != Game::currentPlayer) {
 		return false;
 	}
 	return true;
@@ -200,7 +200,6 @@ bool Commands::isCheck(const Board& board, const Color playerColor) const {
 	return false;
 }
 
-
 bool Commands::isFiguirSelected(const Board& board, int x, int y) const
 {
 	return board.getBoard(x, y) != L" ";
@@ -208,43 +207,76 @@ bool Commands::isFiguirSelected(const Board& board, int x, int y) const
 
 bool Commands::revailsCheck(const Board& board)
 {
+	// temp board is shallow copy for some reason fix
 	Board tempBoard = board;
-	executeCommand(tempBoard);
-	if (isCheck(tempBoard,Game::currentPlayer)) {
+	executeCommand(tempBoard, true);
+	if (isCheck(tempBoard, Game::currentPlayer)) {
 		return true;
 	}
 	return false;
 }
 
-bool Commands::isMate(const Board& board) const {
-	Color currentPlayer = Game::currentPlayer;
-	Color opponent = (currentPlayer == Color::WHITE) ? Color::BLACK : Color::WHITE;
-	//check if opposition king is in check
-	if (!isCheck(board,opponent)) {
-		return false; // If the king is not in check, it's not mate
-	}
-	// Loop through all pieces of the current player
+Position findKing(const Board& board) {
+	Position kingPos = { -1, -1 };
 	for (int y = 0; y < 8; ++y) {
 		for (int x = 0; x < 8; ++x) {
-			Piece* piece = board.getPiece(x, y);
-			if (!piece || piece->getColor() != opponent) continue;
+			Piece* p = board.getPiece(x, y);
+			if (p && (board.getBoard(x, y) == L"♚ " || board.getBoard(x, y) == L"♔ ") && p->getColor() == defender) {
+				kingPos = { x, y };
+				break;
+			}
+		}	
+	}
+	return kingPos;
+}
 
-			// Try all possible moves for this piece
-			for (int newY = 0; newY < 8; ++newY) {
-				for (int newX = 0; newX < 8; ++newX) {
-					if (!piece->checkValidMove(board, x, y, newX, newY)) continue;
+bool Commands::isMate(const Board& board) const {
+	Color defender = Game::currentPlayer;
+	Color attacker = (defender == Color::WHITE) ? Color::BLACK : Color::WHITE;
+	Position kingPos = findKing(board);
+	if (!isCheck(board, defender)) {
+		return false;
+	}
+	const LastMove& lastMove = Game::lastMove;
+	Piece* attackerPiece = lastMove.movedPiece;
+	Position attackerPos{ lastMove.endX, lastMove.endY };
 
-					// Simulate the move
-					Board tempBoard = board;
-					tempBoard.movePiece(x, y, newX, newY);
+	if (!attackerPiece || attackerPiece->getColor() != attacker) {
+		return true; 
+	}
 
-					// Check if still in check
-					if (!isCheck(tempBoard,opponent)) {
-						return false;
-					}
+	Position interceptPath[8];
+	int pathLen = 0;
+	interceptPath[pathLen++] = attackerPos;
+
+	std::wstring attackerSymbol = board.getBoard(attackerPos.x, attackerPos.y);
+	if (attackerSymbol != L"♞ " && attackerSymbol != L"♘ ") {
+		int dx = (kingPos.x == attackerPos.x) ? 0 : (kingPos.x > attackerPos.x ? 1 : -1);
+		int dy = (kingPos.y == attackerPos.y) ? 0 : (kingPos.y > attackerPos.y ? 1 : -1);
+
+		Position cur = { attackerPos.x + dx, attackerPos.y + dy };
+		while (!(cur.x == kingPos.x && cur.y == kingPos.y) && pathLen < 8) {
+			interceptPath[pathLen++] = cur;
+			cur.x += dx;
+			cur.y += dy;
+		}
+	}
+
+	for (int y = 0; y < 8; ++y) {
+		for (int x = 0; x < 8; ++x) {
+			Piece* defenderPiece = board.getPiece(x, y);
+			if (!defenderPiece || defenderPiece->getColor() != defender)
+				continue;
+
+			for (int i = 0; i < pathLen; ++i) {
+				Position target = interceptPath[i];
+				if (defenderPiece->checkValidMove(board, x, y, target.x, target.y)) {
+					return false; 
 				}
 			}
 		}
 	}
-	return true;
+	return true; 
 }
+
+

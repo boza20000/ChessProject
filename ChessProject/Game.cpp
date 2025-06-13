@@ -15,7 +15,7 @@ Color Game::currentPlayer = Color::WHITE;
 int whiteTime = 600;
 int blackTime = 600;
 
-void moveCursorTo(short x, short y) {
+void Game::moveCursorTo(short x, short y) {
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	COORD position = { x, y };
 	SetConsoleCursorPosition(hConsole, position);
@@ -26,7 +26,7 @@ void printTimer(const wchar_t* player, int seconds, int x, int y) {
 		return;
 	}
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	moveCursorTo(x, y);
+	Game::moveCursorTo(x, y);
 	int mins = seconds / 60;
 	int secs = seconds % 60;
 	std::wcout << player << L" Time: " << mins << L":" << (secs < 10 ? L"0" : L"") << secs << L"  ";
@@ -105,7 +105,19 @@ void Game::setTime()
 
 }
 
-
+bool Game::isSquareUnderAttack(const Board& board, int x, int y, Color color) {
+	for (int row = 0; row < 8; ++row) {
+		for (int col = 0; col < 8; ++col) {
+			Piece* p = board.getPiece(col, row);
+			if (p != nullptr && p->getColor() != color) {
+				if (p->checkValidMove(board, col, row, x, y)) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
 
 void Game::start()
 {
@@ -124,10 +136,12 @@ void Game::start()
 	printChessBoard();
 }
 
-void Game::end()
+void Game::end(Color curPlayer)
 {
 	cleanConsole();
 	std::wcout << "\nGame Over!\n";
+	std::wcout << (curPlayer == Color::WHITE ? L"Black" : L"White") << L" wins!\n";
+	Sleep(2000);
 	exit(0);
 }
 
@@ -184,7 +198,7 @@ void Game::changeConsoleFont() {
 	SetCurrentConsoleFontEx(hConsole, FALSE, &cfi);
 }
 
-void clearConsoleRow(int row)
+void Game::clearConsoleRow(int row)
 {
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	if (hConsole == INVALID_HANDLE_VALUE) return;
@@ -200,7 +214,7 @@ void clearConsoleRow(int row)
 
 void cleanInput()
 {
-	clearConsoleRow(20);
+	Game::clearConsoleRow(20);
 	//clearConsoleRow(19);
 }
 
@@ -218,13 +232,13 @@ void Game::gameLoop(Board& board)
 			cleanConsole();
 			std::wcout << L"\nBlack wins by timeout!\n";
 			Sleep(2000);
-			end();
+			end(Color::BLACK);
 		}
 		if (blackTime <= 0 && type != GameType::NO_TIME) {
 			cleanConsole();
 			std::wcout << L"\nWhite wins by timeout!\n";
 			Sleep(2000);
-			end();
+			end(Color::WHITE);
 		}
 		Commands commands;
 		bool moveSucceeded = false;
@@ -233,7 +247,7 @@ void Game::gameLoop(Board& board)
 			moveSucceeded = true;
 			if (commands.isMate(board)) {
 				Sleep(2000);
-				end();
+				end(currentPlayer);
 			}
 		}
 		catch (const std::exception& e) {
@@ -252,7 +266,7 @@ void Game::gameLoop(Board& board)
 		if (moveSucceeded) {
 			counter++;
 		}
-		turnStart = GetTickCount64(); // Reset for next turn
+		turnStart = GetTickCount64();
 
 		moveCursorTo(0, 20);
 		if (counter % 2 == 0) {

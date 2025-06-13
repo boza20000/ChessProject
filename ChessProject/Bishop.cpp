@@ -1,4 +1,4 @@
-#include "Bishop.h"
+﻿#include "Bishop.h"
 #include "Board.h"
 bool Bishop::checkValidMove(const Board& board, int startX, int startY, int endX, int endY) const
 {
@@ -25,3 +25,11 @@ bool Bishop::checkValidMove(const Board& board, int startX, int startY, int endX
     return false; 
 }
 
+const wchar_t* Bishop::getSymbol() const
+{
+	return (color == Color::WHITE) ? L"♗ " : L"♝ ";
+}
+Piece* Bishop::clone() const
+{
+	return new Bishop(*this);
+}

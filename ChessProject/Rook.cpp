@@ -1,4 +1,4 @@
-#include "Rook.h"
+﻿#include "Rook.h"
 #include "Board.h"
 
 bool Rook::checkValidMove(const Board& board, int startX, int startY, int endX, int endY) const
@@ -33,5 +33,15 @@ bool Rook::checkValidMove(const Board& board, int startX, int startY, int endX, 
 		return false;
 	}
 	return true;
+}
+
+const wchar_t* Rook::getSymbol() const
+{
+	return (color == Color::WHITE) ? L"♖ " : L"♜ ";
+}
+
+Piece* Rook::clone() const
+{
+	return new Rook(*this);
 }
 

@@ -1,6 +1,10 @@
-#include "Pawn.h"
+﻿#include "Pawn.h"
 #include "Board.h"
 #include "Game.h"
+#include "Queen.h"
+#include "Rook.h"
+#include "Bishop.h"
+#include "Knight.h"
 
 bool Pawn::checkValidMove(const Board& board, int startX, int startY, int endX, int endY) const
 {
@@ -17,7 +21,7 @@ bool Pawn::checkValidMove(const Board& board, int startX, int startY, int endX, 
 	// Move forward 2 squares from starting position
 	if (startY == startRow && endY == startY + 2 * direction && endX == startX) {
 		Piece* middlePiece = board.getPiece(startX, startY + direction);
-		if (middlePiece == nullptr && targetPiece == nullptr) {	 
+		if (middlePiece == nullptr && targetPiece == nullptr) {
 			return true;
 		}
 	}
@@ -33,52 +37,113 @@ bool Pawn::checkValidMove(const Board& board, int startX, int startY, int endX, 
 	{
 		LastMove lastMove = Game::lastMove;
 	}
-	
+
 	return false;
 }
 
 
 
-bool Pawn::checkAlPassan() const
-{
-	//if last move was pawn move and the pawn is on the 5th row
+bool Pawn::checkAlPassan() const {
+	//LastMove lastMove = Game::lastMove;
+	//if (!lastMove.movedPiece || lastMove.movedPiece->getType() != PieceType::PAWN)
+	//	return false;
+
+	//int direction = (getColor() == Color::WHITE) ? -1 : 1;
+	//int currentY = (getColor() == Color::WHITE) ? 3 : 4; // Row 5 for white, 4 for black
+
+	//// Must be on the correct row to perform en passant
+	//if (Game::selectedY != currentY)
+	//	return false;
+
+	//// The last move must have been a 2-step pawn advance
+	//if (abs(lastMove.endY - lastMove.startY) == 2 &&
+	//	lastMove.endY == Game::selectedY &&
+	//	abs(lastMove.endX - Game::selectedX) == 1)
+	//{
+	//	return true;
+	//}
+
 	return false;
 }
 
-void Pawn::promote() const
+bool Pawn::isPromotion(const Board& board)
 {
-	std::wcout << L"Pawn promotion! Choose a piece (Q, R, B, K): ";
-	wchar_t choice;
-	std::wcin >> choice;
-	while (true) {
-		std::wcin >> choice;
-		switch (choice) {
-		case L'Q':
-		case L'q':
-			std::wcout << L"Promoted to Queen!" << std::endl;
-			//promote
-			return;
-		case L'R':
-		case L'r':
-			std::wcout << L"Promoted to Rook!" << std::endl; \
-				//promote
-				return;
-		case L'B':
-		case L'b':
-			std::wcout << L"Promoted to Bishop!" << std::endl;
-			//promote
-			return;
-		case L'K':
-		case L'k':
-			std::wcout << L"Promoted to Knight!" << std::endl;
-			//promote
-			return;
-		default:
-			std::wcout << L"Invalid choice. No promotion." << std::endl;
-			break;
-		}
+	const wchar_t* piece = board.getBoard(Game::lastMove.endX, Game::lastMove.endY);
+
+	if ((Game::lastMove.endY == 7 && Game::lastMove.movedPiece->getColor() == Color::BLACK && L"♟" == piece))
+	{
+		return true;
 	}
-	//
-	//return true;
+	if ((Game::lastMove.endY == 0 && Game::lastMove.movedPiece->getColor() == Color::WHITE) &&  L"♙ " == piece)
+	{
+		return true;
+	}
+	return false;
 }
 
+void Pawn::makePromotion(Board& board, char obj)
+{
+	if (obj == 'q') { 
+		board.setBoard(Game::lastMove.endX, Game::lastMove.endY, 
+			new Queen({ Game::lastMove.endX, Game::lastMove.endY },Game::currentPlayer));
+	}
+	else if (obj == 'r') {
+		board.setBoard(Game::lastMove.endX, Game::lastMove.endY,
+			new Rook({ Game::lastMove.endX, Game::lastMove.endY }, Game::currentPlayer));
+	}
+	else if (obj == 'b') {
+		board.setBoard(Game::lastMove.endX, Game::lastMove.endY,
+			new Bishop({ Game::lastMove.endX, Game::lastMove.endY }, Game::currentPlayer));
+	}
+	else if (obj == 'k') {
+		board.setBoard(Game::lastMove.endX, Game::lastMove.endY,
+			new Knight({ Game::lastMove.endX, Game::lastMove.endY }, Game::currentPlayer));
+	}
+}
+
+void Pawn::promote(Board& board)
+{
+	Game::moveCursorTo(0, 21);
+	std::wcout << L"Pawn promotion! Choose a piece Q(Queen), R(Rook), B(Bishop), K(Knight): ";
+	Game::moveCursorTo(0, 20);
+	Game::clearConsoleRow(20);
+
+	wchar_t choice;
+	char obj;
+
+	while (true) {
+		Game::moveCursorTo(0, 20);
+		std::wcout << L"Promote to: ";
+		std::wcin >> choice;
+
+		std::wcin.clear();
+		std::wcin.ignore(1000, '\n');
+
+		switch (choice) {
+		case L'Q': case L'q': obj = 'q'; break;
+		case L'R': case L'r': obj = 'r'; break;
+		case L'B': case L'b': obj = 'b'; break;
+		case L'K': case L'k': obj = 'k'; break;
+
+		default:
+			Game::clearConsoleRow(20);
+			continue;
+		}
+
+		makePromotion(board, obj);
+		Game::clearConsoleRow(20);
+		Game::clearConsoleRow(21);
+
+		break;
+	}
+}
+
+const wchar_t* Pawn::getSymbol() const
+{
+	return (color == Color::WHITE) ? L"♙ " : L"♟";
+}
+
+Piece* Pawn::clone() const
+{
+	return new Pawn(*this);
+}

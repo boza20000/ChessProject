@@ -1,4 +1,4 @@
-#include "Queen.h"
+﻿#include "Queen.h"
 #include "Board.h"
 #include "Rook.h"
 #include "Bishop.h"
@@ -19,4 +19,11 @@ bool Queen::checkValidMove(const Board& board, int startX, int startY, int endX,
 		return true;
 	}
 	return false;
+}
+
+const wchar_t* Queen::getSymbol() const {
+	return (color == Color::WHITE) ? L"♕ " : L"♛ ";
+}
+Piece* Queen::clone() const {
+	return new Queen(*this);
 }

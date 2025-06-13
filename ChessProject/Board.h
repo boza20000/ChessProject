@@ -8,20 +8,24 @@
 class Board
 {
 private:
-	 const wchar_t* board[8][8];
+	void copyFrom(const Board& other);
+	void free();
+	Piece * board[8][8];
 public:
-	~Board() = default;
-	Board() = default;
+	~Board();
+	Board();
 	Board(const Board& other);
+	Board& operator=(const Board& other);
 	void initializeBoard();
-	void movePiece(int startX, int startY, int endX, int endY);
+	void movePiece(int startX, int startY, int endX, int endY, bool isSimulation);
 	void repaint();
 	void printBoard()const;
 	void printReverseBoard() const;
-	Piece * getPiece(int x, int y) const;
-	const wchar_t * getBoard(int x, int y) const;
-	void serialiseBoard() const;
-	void derialiseBoard() ;
+	Piece* getPiece(int x, int y) const;
+	const wchar_t* getBoard(int x, int y) const;
+	void makeMove(int startX, int startY, int endX, int endY , bool isSimulation);
 	void makeRokado(Board& board, int kingStartX, int kingStartY, int kingEndX, int kingEndY);
+	bool checkRokado(int startX, int startY, int endX, int endY) const;
+	void setBoard(int x, int y, Piece * value);
 };
 

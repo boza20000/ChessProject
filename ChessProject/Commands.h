@@ -20,7 +20,7 @@ public:
 	bool isValidCommand(Board& board) const;
 	static void save(Board& board);
 	static void load(Board& board);
-	void executeCommand(Board& board);
+	void executeCommand(Board& board,bool isSimulation = false);
 	bool isValidMove(const Board& board) const;
 	void printHelp();
 	void printAvailableCommands();

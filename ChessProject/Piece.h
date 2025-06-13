@@ -27,6 +27,8 @@ public:
 	Piece(Position position);
 	Piece(Position position, Color color);
 	virtual ~Piece() = default;
+	virtual Piece * clone() const = 0; 
+	virtual const wchar_t* getSymbol() const = 0;
 	void setPosition(Position newPosition);
 	Position getPosition() const;
 	Color getColor() const;
