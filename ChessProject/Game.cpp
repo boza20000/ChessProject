@@ -6,6 +6,14 @@
 #include "Commands.h"
 #include "Board.h"
 #include <fstream> 
+#include "Piece.h"
+#include "Rook.h"
+#include "Knight.h"
+#include "Bishop.h"
+#include "Queen.h"
+#include "King.h"
+#include "Pawn.h"
+
 
 static int counter = 0;
 GameType Game::type = GameType::NORMAL;
@@ -15,7 +23,7 @@ Color Game::currentPlayer = Color::WHITE;
 int whiteTime = 600;
 int blackTime = 600;
 
-void moveCursorTo(short x, short y) {
+void Game::moveCursorTo(short x, short y) {
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	COORD position = { x, y };
 	SetConsoleCursorPosition(hConsole, position);
@@ -26,7 +34,7 @@ void printTimer(const wchar_t* player, int seconds, int x, int y) {
 		return;
 	}
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
-	moveCursorTo(x, y);
+	Game::moveCursorTo(x, y);
 	int mins = seconds / 60;
 	int secs = seconds % 60;
 	std::wcout << player << L" Time: " << mins << L":" << (secs < 10 ? L"0" : L"") << secs << L"  ";
@@ -105,7 +113,19 @@ void Game::setTime()
 
 }
 
-
+bool Game::isSquareUnderAttack(const Board& board, int x, int y, Color color) {
+	for (int row = 0; row < 8; ++row) {
+		for (int col = 0; col < 8; ++col) {
+			Piece* p = board.getPiece(col, row);
+			if (p != nullptr && p->getColor() != color) {
+				if (p->checkValidMove(board, col, row, x, y)) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
+}
 
 void Game::start()
 {
@@ -124,10 +144,12 @@ void Game::start()
 	printChessBoard();
 }
 
-void Game::end()
+void Game::end(Color curPlayer)
 {
 	cleanConsole();
 	std::wcout << "\nGame Over!\n";
+	std::wcout << (curPlayer == Color::WHITE ? L"White" : L"Black") << L" wins!\n";
+	Sleep(2000);
 	exit(0);
 }
 
@@ -138,10 +160,10 @@ void Game::save(Board board)
 	std::wcout << L"Game saved!" << std::endl;
 }
 
-void Game::load()
+void Game::load(Board& board)
 {
 	// Load game state from a file 
-	loadGameFromFile();
+	loadGameFromFile(board);
 	std::wcout << L"Game loaded!" << std::endl;
 }
 
@@ -184,7 +206,7 @@ void Game::changeConsoleFont() {
 	SetCurrentConsoleFontEx(hConsole, FALSE, &cfi);
 }
 
-void clearConsoleRow(int row)
+void Game::clearConsoleRow(int row)
 {
 	HANDLE hConsole = GetStdHandle(STD_OUTPUT_HANDLE);
 	if (hConsole == INVALID_HANDLE_VALUE) return;
@@ -200,7 +222,7 @@ void clearConsoleRow(int row)
 
 void cleanInput()
 {
-	clearConsoleRow(20);
+	Game::clearConsoleRow(20);
 	//clearConsoleRow(19);
 }
 
@@ -218,13 +240,13 @@ void Game::gameLoop(Board& board)
 			cleanConsole();
 			std::wcout << L"\nBlack wins by timeout!\n";
 			Sleep(2000);
-			end();
+			end(Color::BLACK);
 		}
 		if (blackTime <= 0 && type != GameType::NO_TIME) {
 			cleanConsole();
 			std::wcout << L"\nWhite wins by timeout!\n";
 			Sleep(2000);
-			end();
+			end(Color::WHITE);
 		}
 		Commands commands;
 		bool moveSucceeded = false;
@@ -233,7 +255,7 @@ void Game::gameLoop(Board& board)
 			moveSucceeded = true;
 			if (commands.isMate(board)) {
 				Sleep(2000);
-				end();
+				end(currentPlayer);
 			}
 		}
 		catch (const std::exception& e) {
@@ -252,7 +274,7 @@ void Game::gameLoop(Board& board)
 		if (moveSucceeded) {
 			counter++;
 		}
-		turnStart = GetTickCount64(); // Reset for next turn
+		turnStart = GetTickCount64();
 
 		moveCursorTo(0, 20);
 		if (counter % 2 == 0) {
@@ -267,9 +289,10 @@ void Game::gameLoop(Board& board)
 
 }
 
-
 void Game::saveGameInFile(const Board board)
 {
+	const char EMPTY_SYMBOL = '0 ';
+
 	std::wofstream file("Saves.txt", std::ios::out);
 	file.imbue(std::locale("en_US.UTF-8"));
 
@@ -280,44 +303,102 @@ void Game::saveGameInFile(const Board board)
 
 	for (int i = 0; i < 8; i++) {
 		for (int j = 0; j < 8; j++) {
-			const wchar_t* symbol = board.getBoard(j, i);
-			if (symbol) {
-				file << symbol << L" ";
-				if (symbol == L"♟")
+			Piece* piece = board.getPiece(j, i);
+			if (piece != nullptr) {
+				file << piece->getSymbol();
+				if (piece->getSymbol() == L"♟")
 					file << L" ";
 			}
 			else
 			{
-				file << L" " << L" ";
+				file << '0' << L" ";
 			}
 		}
 		file << L"\n";
 	}
-
+	file << (Game::currentPlayer == Color::WHITE ? '1' : '2') << L" ";
+	file << lastMove.startX << L" " << lastMove.startY << L" "
+		<< lastMove.endX << L" " << lastMove.endY << L" "
+		<< (lastMove.movedPiece ? lastMove.movedPiece->getSymbol() : nullptr) << L"\n";
 	file.close();
 	std::wcout << L"✅ Game board saved successfully to Saves.txt\n";
 	clearConsoleRow(20);
 }
 
-void Game::loadGameFromFile()
+void Game::loadGameFromFile(Board& board)
 {
-	//std::ifstream file("Saves.txt", std::ios::in);
-	//if (file.is_open()) {
-	//	Board board;
-	//	std::wstring line;
-	//	for (size_t i = 0; i < 8; i++)
-	//	{
-	//		for (size_t j = 0; j < 8; j++)
-	//		{
-	//			file >> line;
-	//			board.getBoard(i, j) = line.c_str();
-	//		}
-	//	}
-	//	file.close();
-	//}
-	//else {
-	//	std::cerr << "Failed to open Saves.txt for reading." << std::endl;
-	//}
+	//const char EMPTY_SYMBOL = '0 ';
+	std::wifstream file("Saves.txt", std::ios::in);
+	file.imbue(std::locale("en_US.UTF-8"));
+
+	if (!file.is_open()) {
+		std::wcerr << L"❌ Failed to open Saves.txt for reading.\n";
+		return;
+	}
+
+	for (int row = 0; row < 8; ++row) {
+		for (int col = 0; col < 8; ++col) {
+			std::wstring symbol;
+			file >> symbol;
+			board.setBoard(col, row, nullptr);
+
+			if (symbol == L"0") {
+				continue;
+			}
+
+			Color color = iswupper(symbol[0]) || symbol == L"♔" || symbol == L"♕" || symbol == L"♖" || symbol == L"♗" || symbol == L"♘" || symbol == L"♙"
+				? Color::WHITE
+				: Color::BLACK;
+
+			Piece* piece = nullptr;
+
+			if (symbol == L"♖" || symbol == L"♜")
+				piece = new Rook({ col, row }, color);
+			else if (symbol == L"♘" || symbol == L"♞")
+				piece = new Knight({ col, row }, color);
+			else if (symbol == L"♗" || symbol == L"♝")
+				piece = new Bishop({ col, row }, color);
+			else if (symbol == L"♕" || symbol == L"♛")
+				piece = new Queen({ col, row }, color);
+			else if (symbol == L"♔" || symbol == L"♚")
+				piece = new King({ col, row }, color);
+			else if (symbol == L"♙" || symbol == L"♟")
+				piece = new Pawn({ col, row }, color);
+
+
+			if (piece)
+				board.setBoard(col, row, piece);
+		}
+	}
+	Game::currentPlayer = (file.get() == '1') ? Color::WHITE : Color::BLACK;
+	counter = (Game::currentPlayer == Color::WHITE) ? 0 : 1;
+	std::wstring movedPiece;
+	int startX, startY, endX, endY;
+	file >> startX >> startY >> endX >> endY;
+	file >> movedPiece;
+	Piece* piece = nullptr;
+	if (movedPiece == L"0") {
+		piece = nullptr; // Handle case where no piece was moved
+	}
+	else {
+		// Create a new piece based on the loaded symbol
+		Color color = iswupper(movedPiece[0]) ? Color::WHITE : Color::BLACK;
+		if (movedPiece == L"♖" || movedPiece == L"♜")
+			piece = new Rook({ endX, endY }, color);
+		else if (movedPiece == L"♘" || movedPiece == L"♞")
+			piece = new Knight({ endX, endY }, color);
+		else if (movedPiece == L"♗" || movedPiece == L"♝")
+			piece = new Bishop({ endX, endY }, color);
+		else if (movedPiece == L"♕" || movedPiece == L"♛")
+			piece = new Queen({ endX, endY }, color);
+		else if (movedPiece == L"♔" || movedPiece == L"♚")
+			piece = new King({ endX, endY }, color);
+		else if (movedPiece == L"♙" || movedPiece == L"♟")
+			piece = new Pawn({ endX, endY }, color);
+	}
+	lastMove = LastMove(startX, startY, endX, endY, piece);
+	file.close();
+	std::wcout << L"✅ Game loaded successfully from Saves.txt\n";
 }
 
 

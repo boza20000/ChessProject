@@ -35,22 +35,23 @@ public:
 	~Game() = default;
 
 	void start();
-	void end();
+	void end(Color curPlayer);
 	void save(Board board);
-	void load();
+	void load(Board& board);
 	void printChessBoard();
 	void gameLoop(Board& board);
 	void setupConsole();
 	void changeConsoleFont();
-	static void saveGameInFile(const Board board);
-	static void loadGameFromFile();
 	void setGameState(GameType gameType);
 	void GameState(int choice);
 	GameType getType()const;
 	void setTime();
-	
-	
 
+	static void saveGameInFile(const Board board);
+	static void loadGameFromFile(Board & board);
+	static bool isSquareUnderAttack(const Board& board, int x, int y, Color color);
 	static void setColor(int textColor, int bgColor);
 	static void cleanConsole();
+	static void clearConsoleRow(int row);
+	static void moveCursorTo(short x, short y);
 };

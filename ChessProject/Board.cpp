@@ -9,14 +9,75 @@
 #include "Queen.h"
 #include "King.h"
 #include "Pawn.h"
-//#include <cwchar> 
 
-Board::Board(const Board& other)
-{
-	for (int row = 0; row < 8; row++) {
-		for (int col = 0; col < 8; col++) {
-			board[row][col] = other.board[row][col];
+void Board::free() {
+	for (int row = 0; row < 8; ++row)
+		for (int col = 0; col < 8; ++col) {
+			delete board[row][col];
+			board[row][col] = nullptr;
 		}
+}
+
+void Board::copyFrom(const Board& other) {
+	for (int row = 0; row < 8; ++row) {
+		for (int col = 0; col < 8; ++col) {
+			delete board[row][col];
+			if (other.board[row][col] != nullptr) {
+				board[row][col] = other.board[row][col]->clone();
+				board[row][col]->setPosition({ col, row });
+			}
+			else {
+				board[row][col] = nullptr;
+			}
+		}
+	}
+}
+
+
+Board::~Board() {
+	free();
+}
+
+
+Board::Board() {
+	for (int row = 0; row < 8; ++row)
+		for (int col = 0; col < 8; ++col)
+			board[row][col] = nullptr;
+}
+
+Board::Board(const Board& other) {
+	for (int row = 0; row < 8; ++row)
+		for (int col = 0; col < 8; ++col)
+			board[row][col] = nullptr;
+	copyFrom(other);
+}
+
+Board& Board::operator=(const Board& other) {
+	if (this != &other) {
+		free();
+		copyFrom(other);
+	}
+	return *this;
+}
+Piece* createBlackPieceForColumn(int row, int col) {
+	switch (col) {
+	case 0: case 7: return new Rook({ row,col }, Color::BLACK);
+	case 1: case 6: return new Knight({ row,col }, Color::BLACK);
+	case 2: case 5: return new Bishop({ row,col }, Color::BLACK);
+	case 3: return new Queen({ row,col }, Color::BLACK);
+	case 4: return new King({ row,col }, Color::BLACK);
+	default: return nullptr;
+	}
+}
+
+Piece* createWhitePieceForColumn(int row, int col) {
+	switch (col) {
+	case 0: case 7: return new Rook({ row,col }, Color::WHITE);
+	case 1: case 6: return new Knight({ row,col }, Color::WHITE);
+	case 2: case 5: return new Bishop({ row,col }, Color::WHITE);
+	case 3: return new Queen({ row,col }, Color::WHITE);
+	case 4: return new King({ row,col }, Color::WHITE);
+	default: return nullptr;
 	}
 }
 
@@ -25,36 +86,55 @@ void Board::initializeBoard()
 	for (int row = 0; row < 8; row++) {
 		for (int col = 0; col < 8; col++) {
 			if (row == 1)
-				board[row][col] = blackPawn;
+				board[row][col] = new Pawn({ row,col }, Color::BLACK);
 			else if (row == 6)
-				board[row][col] = whitePawn;
+				board[row][col] = new Pawn({ row,col }, Color::WHITE);
 			else if (row == 0)
-				board[row][col] = blackPieces[col];
+				board[row][col] = createBlackPieceForColumn(0, col);
 			else if (row == 7)
-				board[row][col] = whitePieces[col];
+				board[row][col] = createWhitePieceForColumn(7, col);
 			else
-				board[row][col] = L"  ";
+				board[row][col] = nullptr;
 		}
 	}
 }
-
-void Board::movePiece(int startX, int startY, int endX, int endY)
+bool Board::checkRokado(int startX, int startY, int endX, int endY) const
 {
-	this->board[endY][endX] = this->board[startY][startX];
-	this->board[startY][startX] = L"  ";
-	Piece* movedPiece = getPiece(endX, endY);
-	Game::lastMove = LastMove(startX, startY, endX, endY, movedPiece);
-	movedPiece->isMovedToTrue();
-	if (King::isRokado) {
-		King::isRokado = false;
+	Piece* piece = getPiece(startX, startY);
+	if (!piece) return false;
+	King* king = dynamic_cast<King*>(piece);
+	if (!king) return false;
+	if (abs(endX - startX) != 2 || startY != endY) return false;
+	return king->rokado(*this, startX, startY, endX, endY);
+}
+
+void Board::setBoard(int x, int y, Piece* piece)
+{
+	delete board[y][x];
+	board[y][x] = piece;
+}
+
+void Board::movePiece(int startX, int startY, int endX, int endY, bool simulate)
+{
+	bool isRokado = checkRokado(startX, startY, endX, endY);
+
+	makeMove(startX, startY, endX, endY, simulate);
+
+	if (!simulate && isRokado) {
 		makeRokado(*this, startX, startY, endX, endY);
 	}
-	repaint();
+
+	if (!simulate && Pawn::isPromotion(*this)) {
+		Pawn::promote(*this);
+	}
+
+	if (!simulate) {
+		repaint();
+	}
 }
 
 void Board::repaint()
 {
-	//use cursor to repaint the two places where the change happened
 	Game::cleanConsole();
 	printBoard();
 	std::wcout << L"\n";
@@ -67,7 +147,12 @@ void Board::printBoard() const
 		for (int col = 0; col < 8; col++) {
 			bool isWhiteSquare = (row + col) % 2 == 0;
 			Game::setColor(row < 2 || row > 5 ? 15 : 0, isWhiteSquare ? 4 : 1);
-			std::wcout << board[row][col];
+			if (board[row][col] != nullptr) {
+				std::wcout << board[row][col]->getSymbol();
+			}
+			else if (board[row][col] == nullptr) {
+				std::wcout << L"  ";
+			}
 		}
 		Game::setColor(15, 0);
 		std::wcout << std::endl;
@@ -82,7 +167,12 @@ void Board::printReverseBoard() const
 		for (int col = 7; col >= 0; col--) {
 			bool isWhiteSquare = (row + col) % 2 == 0;
 			Game::setColor(row < 2 || row > 5 ? 15 : 0, isWhiteSquare ? 4 : 1);
-			std::wcout << board[row][col];
+			if (board[row][col] != nullptr) {
+				std::wcout << board[row][col]->getSymbol();
+			}
+			else if (board[row][col] == nullptr) {
+				std::wcout << L"  ";
+			}
 		}
 		Game::setColor(15, 0);
 		std::wcout << std::endl;
@@ -91,50 +181,34 @@ void Board::printReverseBoard() const
 }
 
 
+
 Piece* Board::getPiece(int x, int y) const
 {
-	const wchar_t* symbol = board[y][x];
-	//Position position = { y,x };
-	if (std::wcscmp(symbol, L"♜ ") == 0)
-		return new Rook({ x, y }, Color::WHITE);
-	else if (std::wcscmp(symbol, L"♖ ") == 0)
-		return new Rook({ x, y }, Color::BLACK);
-	else if (std::wcscmp(symbol, L"♞ ") == 0)
-		return new Knight({ x, y }, Color::WHITE);
-	else if (std::wcscmp(symbol, L"♘ ") == 0)
-		return new Knight({ x, y }, Color::BLACK);
-	else if (std::wcscmp(symbol, L"♟") == 0)
-		return new Pawn({ x, y }, Color::WHITE);
-	else if (std::wcscmp(symbol, L"♙ ") == 0)
-		return new Pawn({ x, y }, Color::BLACK);
-	else if (std::wcscmp(symbol, L"♝ ") == 0)
-		return new Bishop({ x, y }, Color::WHITE);
-	else if (std::wcscmp(symbol, L"♗ ") == 0)
-		return new Bishop({ x, y }, Color::BLACK);
-	else if (std::wcscmp(symbol, L"♛ ") == 0)
-		return new Queen({ x, y }, Color::WHITE);
-	else if (std::wcscmp(symbol, L"♕ ") == 0)
-		return new Queen({ x, y }, Color::BLACK);
-	else if (std::wcscmp(symbol, L"♚ ") == 0)
-		return new King({ x, y }, Color::WHITE);
-	else if (std::wcscmp(symbol, L"♔ ") == 0)
-		return new King({ x, y }, Color::BLACK);
-
-	return nullptr;
-}
-
-
-const wchar_t* Board::getBoard(int x, int y) const
-{
+	if (x < 0 || x > 7 || y < 0 || y > 7) return nullptr;
 	return board[y][x];
 }
 
-void Board::serialiseBoard() const
+const wchar_t* Board::getBoard(int x, int y) const
 {
+	if (board[y][x] != nullptr) {
+		return board[y][x]->getSymbol();
+	}
+	return L"  ";
 }
 
-void Board::derialiseBoard()
+void Board::makeMove(int startX, int startY, int endX, int endY, bool simulate)
 {
+	delete board[endY][endX];
+	board[endY][endX] = board[startY][startX];
+	board[startY][startX] = nullptr;
+
+	if (board[endY][endX] != nullptr)
+		board[endY][endX]->setPosition({ endX, endY });
+
+	if (!simulate) {
+		Game::lastMove = LastMove(startX, startY, endX, endY, board[endY][endX]);
+		board[endY][endX]->isMovedToTrue();
+	}
 }
 
 void Board::makeRokado(Board& board, int kingStartX, int kingStartY, int kingEndX, int kingEndY)
@@ -144,5 +218,5 @@ void Board::makeRokado(Board& board, int kingStartX, int kingStartY, int kingEnd
 	int rookStartY = kingStartY;
 	int rookEndX = (direction == 1) ? kingEndX - 1 : kingEndX + 1;
 	int rookEndY = kingEndY;
-	board.movePiece(rookStartX, rookStartY, rookEndX, rookEndY);
+	board.makeMove(rookStartX, rookStartY, rookEndX, rookEndY,false);
 }
