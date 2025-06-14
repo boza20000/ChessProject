@@ -37,7 +37,7 @@ public:
 	void start();
 	void end(Color curPlayer);
 	void save(Board board);
-	void load();
+	void load(Board& board);
 	void printChessBoard();
 	void gameLoop(Board& board);
 	void setupConsole();
@@ -48,7 +48,7 @@ public:
 	void setTime();
 
 	static void saveGameInFile(const Board board);
-	static void loadGameFromFile();
+	static void loadGameFromFile(Board & board);
 	static bool isSquareUnderAttack(const Board& board, int x, int y, Color color);
 	static void setColor(int textColor, int bgColor);
 	static void cleanConsole();

@@ -87,7 +87,7 @@ void Commands::save(Board& board)
 
 void Commands::load(Board& board)
 {
-	Game::loadGameFromFile();
+	Game::loadGameFromFile(board);
 	std::wcout << L"Game loaded!" << std::endl;
 	board.repaint();
 }
