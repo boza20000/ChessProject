@@ -207,7 +207,7 @@ void Board::makeMove(int startX, int startY, int endX, int endY, bool simulate)
 
 	if (!simulate) {
 		Game::lastMove = LastMove(startX, startY, endX, endY, board[endY][endX]);
-		board[endY][endX]->isMovedToTrue();
+		board[endY][endX]->setMovedToTrue();
 	}
 }
 

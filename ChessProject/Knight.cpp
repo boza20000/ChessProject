@@ -12,11 +12,13 @@ bool Knight::checkValidMove(const Board& board, int startX, int startY, int endX
 	return (dx == 2 && dy == 1) || (dx == 1 && dy == 2);
 }
 
+// returns the symbol of the knight based on its color.
 const wchar_t* Knight::getSymbol() const
 {
 	return (color == Color::WHITE) ? L"♘ " : L"♞ ";
 }
 
+// This function creates a new instance of Knight and returns a pointer to it.
 Piece* Knight::clone() const
 {
 	return new Knight(*this);

@@ -18,7 +18,7 @@ void Commands::processCommands(Board& board)
 	wchar_t inputBuffer[MAX_COMMAND_LENGTH];
 	std::wcin.getline(inputBuffer, MAX_COMMAND_LENGTH);
 	setCommand(std::wstring(inputBuffer));
-	if (isValidCommand(board) && isValidMove(board) && !isCheck(board, Game::currentPlayer)
+	if (isValidCommand(board) && isValidMove(board)
 		&& isRightColorFigure(board) && !revailsCheck(board)) {
 		executeCommand(board);
 	}
@@ -51,11 +51,13 @@ bool Commands::isValidCommand(Board& board) const
 {
 	if (command == L"-save" || command == L"-s" || command == L"save")
 	{
+		
 		save(board);
 		return true;
 	}
 	else if (command == L"-load" || command == L"-l" || command == L"load")
 	{
+		
 		load(board);
 		return true;
 	}
@@ -268,10 +270,21 @@ bool Commands::isPathClear(const Board&board,Color defender,Position * intercept
 			for (int i = 0; i < pathLen; ++i) {
 				Position target = interceptPath[i];
 				if (defenderPiece->checkValidMove(board, x, y, target.x, target.y)) {
-					if (Commands::isPieceProtected(board, board.getPiece(x, y)) && isKing(defenderPiece)) {
+					Piece* targetPiece = board.getPiece(target.x, target.y);
+
+					// Skip invalid king captures of protected attackers
+					if (isKing(defenderPiece) && targetPiece &&
+						targetPiece->getColor() != defender &&
+						isPieceProtected(board, targetPiece)) {
 						continue;
 					}
-					return false;
+
+					// Simulate move
+					Board tempBoard = board;
+					tempBoard.makeMove(x, y, target.x, target.y, true);
+					if (!isCheck(tempBoard, defender)) {
+						return false; 
+					}
 				}
 			}
 		}
@@ -313,15 +326,12 @@ bool Commands::isMate(const Board& board) const {
 	const LastMove& lastMove = Game::lastMove;
 	Piece* attackerPiece = lastMove.movedPiece;
 	Position attackerPos{ lastMove.endX, lastMove.endY };
-
 	if (!attackerPiece || attackerPiece->getColor() != attacker) {
 		return true;
 	}
-
 	Position interceptPath[8];
 	int pathLen = 0;
 	interceptPath[pathLen++] = attackerPos;
-
 	std::wstring attackerSymbol = board.getBoard(attackerPos.x, attackerPos.y);
 	if (attackerSymbol != L"♞ " && attackerSymbol != L"♘ ") {
 		int dx = (kingPos.x == attackerPos.x) ? 0 : (kingPos.x > attackerPos.x ? 1 : -1);
@@ -334,15 +344,12 @@ bool Commands::isMate(const Board& board) const {
 			cur.y += dy;
 		}
 	}
-
 	if (pathLen > 0 && !isPathClear(board, defender, interceptPath, pathLen)) {
 		return false; 
 	}
-
 	if (isEscapable(board, kingPos, defender)) {
 		return false; 
-	}
-	
+	}	
 	return true;
 }
 

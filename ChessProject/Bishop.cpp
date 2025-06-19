@@ -1,5 +1,7 @@
 ﻿#include "Bishop.h"
 #include "Board.h"
+
+// this function checks if the move is valid for a Bishop piece
 bool Bishop::checkValidMove(const Board& board, int startX, int startY, int endX, int endY) const
 {
     if (abs(endX - startX) != abs(endY - startY)) {
@@ -25,10 +27,13 @@ bool Bishop::checkValidMove(const Board& board, int startX, int startY, int endX
     return false; 
 }
 
+// this function returns the symbol of the Bishop piece based on its color
 const wchar_t* Bishop::getSymbol() const
 {
 	return (color == Color::WHITE) ? L"♗ " : L"♝ ";
 }
+
+// this function creates a new instance of Bishop with the same properties as the current instance
 Piece* Bishop::clone() const
 {
 	return new Bishop(*this);

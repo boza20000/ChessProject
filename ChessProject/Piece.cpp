@@ -2,6 +2,16 @@
 #include "Board.h"
 #include "Rook.h"
 
+void Piece::setMovedToTrue()
+{
+	isMoved = true;
+}
+
+bool Piece::getIsMoved() const
+{
+	return isMoved;
+}
+
 Piece::Piece(Position position) : position(position), color(Color::WHITE) {}
 
 Piece::Piece(Position position, Color color) : position(position), color(color) {}

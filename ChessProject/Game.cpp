@@ -15,7 +15,7 @@
 #include "Pawn.h"
 
 
-static int counter = 0;
+int Game::counter = 0;
 GameType Game::type = GameType::NORMAL;
 LastMove Game::lastMove(0, 0, 0, 0, nullptr);
 Color Game::currentPlayer = Color::WHITE;
@@ -289,6 +289,7 @@ void Game::gameLoop(Board& board)
 
 }
 
+
 void Game::saveGameInFile(const Board board)
 {
 	const char EMPTY_SYMBOL = '0 ';
@@ -370,7 +371,12 @@ void Game::loadGameFromFile(Board& board)
 				board.setBoard(col, row, piece);
 		}
 	}
-	Game::currentPlayer = (file.get() == '1') ? Color::WHITE : Color::BLACK;
+	//clear spaces
+	file >> std::ws;
+	//get clean
+	wchar_t player = file.get();
+
+	Game::currentPlayer = (player == '1') ? Color::WHITE : Color::BLACK;
 	counter = (Game::currentPlayer == Color::WHITE) ? 0 : 1;
 	std::wstring movedPiece;
 	int startX, startY, endX, endY;
@@ -378,10 +384,9 @@ void Game::loadGameFromFile(Board& board)
 	file >> movedPiece;
 	Piece* piece = nullptr;
 	if (movedPiece == L"0") {
-		piece = nullptr; // Handle case where no piece was moved
+		piece = nullptr; 
 	}
 	else {
-		// Create a new piece based on the loaded symbol
 		Color color = iswupper(movedPiece[0]) ? Color::WHITE : Color::BLACK;
 		if (movedPiece == L"♖" || movedPiece == L"♜")
 			piece = new Rook({ endX, endY }, color);
