@@ -11,7 +11,7 @@ bool Pawn::checkValidMove(const Board& board, int startX, int startY, int endX, 
 	int direction = (getColor() == Color::WHITE) ? -1 : 1; // White moves up (row decreases), Black moves down (row increases)
 	int startRow = (getColor() == Color::WHITE) ? 6 : 1;   // Starting rows: 6 for White, 1 for Black
 
-	Piece* targetPiece = board.getPiece(endX, endY); // EndX = col, EndY = row
+	Piece* targetPiece = board.getPiece(endX, endY);
 
 	// Move forward 1 square
 	if (endY == startY + direction && endX == startX && targetPiece == nullptr) {
@@ -33,10 +33,10 @@ bool Pawn::checkValidMove(const Board& board, int startX, int startY, int endX, 
 		}
 	}
 
-	if (checkAlPassan())
+	/*if (checkAlPassan())
 	{
 		LastMove lastMove = Game::lastMove;
-	}
+	}*/
 
 	return false;
 }
@@ -84,8 +84,8 @@ bool Pawn::isPromotion(const Board& board)
 void Pawn::makePromotion(Board& board, char obj)
 {
 	if (obj == 'q') { 
-		board.setBoard(Game::lastMove.endX, Game::lastMove.endY, 
-			new Queen({ Game::lastMove.endX, Game::lastMove.endY },Game::currentPlayer));
+		Piece* p = new Queen({ Game::lastMove.endX, Game::lastMove.endY }, Game::currentPlayer);
+		board.setBoard(Game::lastMove.endX, Game::lastMove.endY, p);
 	}
 	else if (obj == 'r') {
 		board.setBoard(Game::lastMove.endX, Game::lastMove.endY,

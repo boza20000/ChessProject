@@ -35,11 +35,13 @@ bool Rook::checkValidMove(const Board& board, int startX, int startY, int endX, 
 	return true;
 }
 
+//return the symbol of the rook based on its color
 const wchar_t* Rook::getSymbol() const
 {
 	return (color == Color::WHITE) ? L"♖ " : L"♜ ";
 }
 
+//clone function
 Piece* Rook::clone() const
 {
 	return new Rook(*this);

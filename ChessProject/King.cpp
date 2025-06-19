@@ -5,13 +5,16 @@
 
 bool King::checkValidMove(const Board& board, int startX, int startY, int endX, int endY) const
 {
-	if (board.getPiece(endX, endY) != nullptr && !isOppositionFigure(board, endX, endY)) {//empty place or enemy
+    //empty place or enemy
+	if (board.getPiece(endX, endY) != nullptr && !isOppositionFigure(board, endX, endY)) {
 		return false;
 	}
+    //check for rokado move
 	if (rokado(board, startX, startY, endX, endY)) {
 		return true;
 	}
-	if (abs(endX - startX) > 1 || abs(endY - startY) > 1) {//king can move only one square
+    //king can move only one square
+	if (abs(endX - startX) > 1 || abs(endY - startY) > 1) {
 		return false;
 	}
 	return true;

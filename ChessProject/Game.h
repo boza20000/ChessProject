@@ -28,6 +28,7 @@ enum class GameType
 class Game
 {	
 public:
+	static int counter;
 	static GameType type;
 	static LastMove lastMove;
 	static Color currentPlayer;
@@ -54,4 +55,7 @@ public:
 	static void cleanConsole();
 	static void clearConsoleRow(int row);
 	static void moveCursorTo(short x, short y);
+	static void loadLastMove(std::wifstream& file);
+	static Piece* createPieceFromSymbol(const std::wstring& symbol, Position pos, Color color);
+	static void loadCell(std::wifstream& file, Board& board, int col, int row);
 };
